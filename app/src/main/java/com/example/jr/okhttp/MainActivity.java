@@ -1,12 +1,20 @@
 package com.example.jr.okhttp;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -31,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void init() {
-        okHttpClient = new OkHttpClient();
+        okHttpClient = new OkHttpClient.Builder().addInterceptor(new LoggingInterceptor()).build();
         tvConsole = (TextView) findViewById(R.id.tv_console);
         progressBar = (ProgressBar) findViewById(R.id.progressbar);
     }
@@ -126,14 +134,51 @@ public class MainActivity extends AppCompatActivity {
         /**
          * 文件的下载
          */
-        findViewById(R.id.btn_download).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                
+        findViewById(R.id.btn_download).setOnClickListener(view -> {
+            //先要检测一下有没有读取sd卡的权限
+            if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_DENIED) {
+                //没有sd卡权限，得申请一下
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
+                return;
             }
+
+
+            //http://isujin.com/wp-content/uploads/2016/08/wallhaven-407775.png
+            showProgressBar();
+            Request request = new Request.Builder()
+                    .url("http://isujin.com/wp-content/uploads/2016/08/wallhaven-407775.png")
+                    .build();
+            okHttpClient.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    runOnUiThread(() -> {
+                        tvConsole.setText("文件下载失败~");
+                        hideProgressBar();
+                    });
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    InputStream inputStream = response.body().byteStream();
+                    FileOutputStream fos = new FileOutputStream(new File(Environment.getExternalStorageDirectory().getPath() + "/logo.png"));
+                    byte[] buffer = new byte[2048];
+                    int len;
+                    while ((len = inputStream.read(buffer)) != -1) {
+                        fos.write(buffer, 0, len);
+                    }
+                    fos.flush();
+                    runOnUiThread(() -> {
+                        hideProgressBar();
+                        tvConsole.setText("文件下载完成");
+                    });
+                }
+            });
+
         });
 
 
+        findViewById(R.id.btn_star_intent).setOnClickListener(view -> startActivity(new Intent(MainActivity.this, Main2Activity.class)));
     }
 
     private void showProgressBar() {
