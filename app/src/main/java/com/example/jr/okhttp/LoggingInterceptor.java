@@ -3,10 +3,16 @@ package com.example.jr.okhttp;
 import android.util.Log;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 
 import okhttp3.Interceptor;
+import okhttp3.MediaType;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
+import okio.Buffer;
 
 /**
  * 日志拦截器，
@@ -21,15 +27,15 @@ public class LoggingInterceptor implements Interceptor {
 
     @Override
     public Response intercept(Chain chain) throws IOException {
-        long t1 = System.nanoTime();
         Request request = chain.request();
-        Log.i(TAG, String.format("Sending request %s on %s%n%s", request.url(), request.method(), request.headers()));
+        //获得请求body
+        RequestBody requestBody = request.body();
+        Buffer buffer = new Buffer();
+        requestBody.writeTo(buffer);
+        MediaType contentType = requestBody.contentType();
+        Charset charset = contentType.charset(Charset.forName("UTF-8"));
+        Log.i(TAG, request.toString() + "\nbody:" + URLDecoder.decode(buffer.readString(charset), "UTF-8"));
         Response response = chain.proceed(request);
-        long t2 = System.nanoTime();
-//        System.out.println(String.format("Received response for %s in %.1fms%n%s",
-//                request.url(), (t2 - t1) / 1e6d, response.headers()));
-        Log.i(TAG, String.format("Received response for %s in %.1fms%n%s", request.url(), (t2 - t1) / 1e6d, response.headers()));
-
         return response;
     }
 }

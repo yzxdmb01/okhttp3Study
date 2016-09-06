@@ -16,10 +16,11 @@ import okhttp3.Call;
 public abstract class BaseHttpCallBack<T> {
     public Type mType;
 
+    //获取泛型T的具体类型
     static Type getSuperclassTypeParamater(Class<?> subclass) {
         Type superclass = subclass.getGenericSuperclass();
         if (superclass instanceof Class) {
-            throw new RuntimeException("Missing type parameter.");
+            return String.class;
         }
         ParameterizedType parameterized = (ParameterizedType) superclass;
         return $Gson$Types.canonicalize(parameterized.getActualTypeArguments()[0]);
